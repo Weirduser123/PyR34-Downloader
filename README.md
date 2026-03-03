@@ -35,7 +35,7 @@ Required libraries (installed automatically on first run if missing):
    ```bash
    git clone https://github.com/Weirduser123/PYR34-Fast-Downloader.git
    cd PYR34-Fast-Downloader
-(o simplemente guarda el archivo como pyr34.py)
+(or just save it like pyr34.py)
 
 Run once to create config and install dependencies:Bashpython pyr34.pyThe script will:
 Ask for your user_id and api_key from https://rule34.xxx (Account → Options)
