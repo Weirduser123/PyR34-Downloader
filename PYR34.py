@@ -11,7 +11,7 @@ init(autoreset=True)
 
 CONFIG_FILE = "r34_config.json"
 HEADERS = {
-    "User-Agent": "Rule34Downloader/2.2 (compatible; Windows NT 10.0)"
+    "User-Agent": "Rule34Downloader/2.3 (compatible; Windows NT 10.0)"
 }
 
 session = requests.Session()
@@ -59,7 +59,6 @@ def download_file(file_url: str, full_path: str) -> bool:
         return False
 
 def save_metadata(post: dict, metadata_path: str):
-    """Save full post info as JSON metadata."""
     try:
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(post, f, indent=4, ensure_ascii=False)
@@ -133,7 +132,7 @@ def search_posts(tags: list[str], page: int, user_id: str, api_key: str, limit_p
         return []
 
 def download_by_tags(user_id: str, api_key: str, tags: list[str], media_type: str, limit_str: str, output_folder: str):
-    tag_identifier = "_".join(tags).replace(" ", "_")
+    tag_identifier = "_".join([t for t in tags if not t.startswith('-')]).replace(" ", "_")
     base_dir = os.path.join(output_folder, tag_identifier)
     os.makedirs(base_dir, exist_ok=True)
 
@@ -202,7 +201,7 @@ def download_by_tags(user_id: str, api_key: str, tags: list[str], media_type: st
                     break
 
         page_number += 1
-        time.sleep(0.8)
+        time.sleep(1.0)  # Balance entre velocidad y evitar bans
 
     elapsed = time.time() - start_time
     print(f"\n{Fore.GREEN}Completed: {downloaded_count} {media_type} files + metadata in {elapsed:.2f} seconds.{Style.RESET_ALL}")
@@ -219,14 +218,30 @@ def main():
             print(f"{Fore.MAGENTA}Exiting. Goodbye!{Style.RESET_ALL}")
             break
         if choice == "1":
-            tags_input = input("Tags (space-separated): ").strip()
-            tags_list = [t for t in tags_input.split() if t]
-            if not tags_list:
+            tags_input = input("Tags allowed: ").strip()
+            main_tags = [t for t in tags_input.split() if t]
+
+            blacklist_input = input("Blacklisted tags: ").strip()
+            blacklist = [f"-{t}" for t in blacklist_input.split() if t]
+
+            ai_choice = input("Allow AI-generated content? (yes/no): ").strip().lower()
+            ai_filter = []
+            if ai_choice != "yes":
+                ai_filter = ["-ai_generated", "-ai-assisted", "-stable_diffusion"]
+                print(f"{Fore.CYAN}AI content will be excluded (added: {' '.join(ai_filter)}){Style.RESET_ALL}")
+
+            all_search_tags = main_tags + blacklist + ai_filter
+            if not main_tags:
+                print(f"{Fore.YELLOW}No main tags provided. Skipping.{Style.RESET_ALL}")
                 continue
+
+            print(f"{Fore.CYAN}Final search tags: {' '.join(all_search_tags)}{Style.RESET_ALL}")
+
             media_choice = input("Media type (all / images / videos / gifs): ").lower().strip()
             limit_input = input("Limit (number or 'all'): ").strip()
             output_path = input("Output directory: ").strip()
-            download_by_tags(user_id, api_key, tags_list, media_choice, limit_input, output_path)
+
+            download_by_tags(user_id, api_key, all_search_tags, media_choice, limit_input, output_path)
         else:
             print("Please enter 1 or 2.")
 
